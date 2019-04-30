@@ -54,6 +54,9 @@ if __name__ == "__main__":
 
     messages = get_link_messages(client, last_id)
     print(len(messages), "links found")
+    if len(messages) == 0:
+        print("No links to save")
+        exit(0)
 
     new_content = build_links_list(messages)
     new_file = InputFileContent(new_content + "\n\n" + content)
