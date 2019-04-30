@@ -2,13 +2,17 @@ from github import Github, InputFileContent
 from telethon import TelegramClient, events, sync
 import re
 import os
+import base64
 
-# These example values won't work. You must get your own api_id and
-# api_hash from https://my.telegram.org, under API Development.
+# Get your own api_id and api_hash from https://my.telegram.org, under API Development.
 api_id = os.environ['API_ID']
 api_hash = os.environ['API_HASH']
+# Get the github token from https://github.com/settings/tokens
 github_token = os.environ['GITHUB_TOKEN']
 
+if os.environ['SESSION_DB']:
+    with open("session_name.session", "wb") as file:
+        file.write(base64.b64decode(os.environ['SESSION_DB']))
 
 def get_gist():
     g = Github(github_token)
