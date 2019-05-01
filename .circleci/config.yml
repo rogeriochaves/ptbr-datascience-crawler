@@ -1,41 +1,30 @@
 version: 2.1
+executors:
+  python-executor:
+    docker:
+      - image: circleci/python:3.6.4
+    working_directory: ~/repo
 jobs:
   build:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/python:3.6.4
+    executor: python-executor
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
       - run:
           name: install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r requirements.txt
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+          command: pip install -r requirements.txt
       - run:
           name: run tests
-          command: |
-            . venv/bin/activate
-            python -m unittest tests/*.py
+          command: python -m unittest tests/*.py
   scrape:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/python:3.6.4
+    executor: python-executor
     steps:
+      - checkout
+      - run:
+          name: install dependencies
+          command: pip install -r requirements.txt
       - run:
           name: scrape
-          command: |
-            . venv/bin/activate
-            python main.py
+          command: python main.py
 workflows:
   version: 2
   commit:
@@ -47,13 +36,10 @@ workflows:
   nightly:
     triggers:
       - schedule:
-          cron: "30 6 * * *"
+          cron: "36 6 * * *"
           filters:
             branches:
               only:
                 - master
     jobs:
-      - build
-      - scrape:
-          requires:
-            - build
+      - scrape
