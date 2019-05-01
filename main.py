@@ -14,6 +14,7 @@ if os.environ['SESSION_DB']:
     with open("session_name.session", "wb") as file:
         file.write(base64.b64decode(os.environ['SESSION_DB']))
 
+
 def get_gist():
     g = Github(github_token)
     return g.get_gist("bc1469d0a8ed0de01369aa34be2bad76")
