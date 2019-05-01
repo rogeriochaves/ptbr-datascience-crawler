@@ -11,20 +11,30 @@ jobs:
       - checkout
       - run:
           name: install dependencies
-          command: pip install -r requirements.txt
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
       - run:
           name: run tests
-          command: python -m unittest tests/*.py
+          command: |
+            . venv/bin/activate
+            python -m unittest tests/*.py
   scrape:
     executor: python-executor
     steps:
       - checkout
       - run:
           name: install dependencies
-          command: pip install -r requirements.txt
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
       - run:
           name: scrape
-          command: python main.py
+          command: |
+            . venv/bin/activate
+            python main.py
 workflows:
   version: 2
   commit:
@@ -36,7 +46,7 @@ workflows:
   nightly:
     triggers:
       - schedule:
-          cron: "36 6 * * *"
+          cron: "40 6 * * *"
           filters:
             branches:
               only:
