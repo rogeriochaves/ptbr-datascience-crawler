@@ -40,9 +40,6 @@ workflows:
   commit:
     jobs:
       - build
-      - scrape:
-          requires:
-            - build
   nightly:
     triggers:
       - schedule:
