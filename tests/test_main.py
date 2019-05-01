@@ -14,10 +14,12 @@ class MainTestCase(unittest.TestCase):
         mocked_message1.message = "no links"
         mocked_message2 = Mock()
         mocked_message2.message = "here is a link: http://google.com"
+        mocked_message3 = Mock()
+        mocked_message3.message = "this does not count: https://t.me/datasciencepython/47854"
 
         mocked_client = Mock()
         mocked_client.get_messages = Mock(
-            return_value=[mocked_message1, mocked_message2])
+            return_value=[mocked_message1, mocked_message2, mocked_message3])
 
         result = get_link_messages(
             mocked_client, 0)

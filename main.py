@@ -28,8 +28,10 @@ def get_last_id(content):
 def get_link_messages(client, offset):
     messages = client.get_messages(
         'datasciencepython', min_id=offset, limit=300, reverse=True)
-    messages_with_links = filter(lambda m: m.message and re.match(
-        r'.*https?://.*', m.message), messages)
+    messages_with_links = filter(lambda m:
+                                 m.message and
+                                 re.match(r'.*https?://.*', m.message) and
+                                 not "t.me/datasciencepython" in m.message, messages)
 
     return list(messages_with_links)
 
