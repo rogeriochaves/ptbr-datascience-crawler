@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 jobs:
   build:
     working_directory: ~/repo
@@ -33,3 +33,18 @@ jobs:
               . venv/bin/activate
               python main.py
             fi
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build
+  nightly:
+    triggers:
+      - schedule:
+          cron: "30 6 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build
