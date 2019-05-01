@@ -26,18 +26,24 @@ jobs:
           command: |
             . venv/bin/activate
             python -m unittest tests/*.py
+  scrape:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/python:3.6.4
+    steps:
       - run:
           name: scrape
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              . venv/bin/activate
-              python main.py
-            fi
+            . venv/bin/activate
+            python main.py
 workflows:
   version: 2
   commit:
     jobs:
       - build
+      - scrape:
+          requires:
+            - build
   nightly:
     triggers:
       - schedule:
@@ -48,3 +54,6 @@ workflows:
                 - master
     jobs:
       - build
+      - scrape:
+          requires:
+            - build
