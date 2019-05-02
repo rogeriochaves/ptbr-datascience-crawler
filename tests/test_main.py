@@ -1,5 +1,5 @@
 import unittest
-from main import get_last_id, get_link_messages, build_links_list
+from main import get_last_id, get_link_messages, build_links_list, get_article_details
 from unittest.mock import Mock
 import datetime
 
@@ -18,8 +18,10 @@ class MainTestCase(unittest.TestCase):
         mocked_message3.message = "this does not count: https://t.me/datasciencepython/47854"
 
         mocked_client = Mock()
-        mocked_client.get_messages = Mock(
-            return_value=[mocked_message1, mocked_message2, mocked_message3])
+
+        async def mocked_get_messages(group, min_id, limit, reverse):
+            return [mocked_message1, mocked_message2, mocked_message3]
+        mocked_client.get_messages = mocked_get_messages
 
         result = get_link_messages(
             mocked_client, 0)
@@ -30,10 +32,33 @@ class MainTestCase(unittest.TestCase):
         msg1 = Mock()
         msg1.message = "muito legal!\nhttp://www.pudim.com.br\nné?"
         msg2 = Mock()
-        msg2.message = "here is a link: http://google.com"
+        msg2.message = "here is a link:http://google.com"
         msg2.id = 1001
         msg2.date = datetime.datetime(2019, 4, 3, 20, 43, 4)
 
         result = build_links_list([msg1, msg2])
-        expected = "### 03/04/2019 20:43\nLast Message ID: 1001\n\n- muito legal!\n  http://www.pudim.com.br\n  né?\n- here is a link: http://google.com"
+        expected = """### 03/04/2019 20:43
+Last Message ID: 1001
+
+muito legal!
+
+né?
+
+| [Pudim](http://www.pudim.com.br) | [<img src="http://www.pudim.com.br/pudim.jpg" width="300">](http://www.pudim.com.br) |
+| -- | -- |
+
+here is a link:
+
+| [Google](http://google.com) | [<img src="" width="300">](http://google.com) |
+| -- | -- |"""
         self.assertEqual(expected, result)
+
+    def test_get_article_details(self):
+        msg1 = Mock()
+        msg1.message = "muito legal!\nhttp://www.pudim.com.br\nné?"
+
+        result = get_article_details(msg1)
+        self.assertEqual({"title": "Pudim",
+                          "top_image": "http://www.pudim.com.br/pudim.jpg",
+                          "url": "http://www.pudim.com.br",
+                          "message": "muito legal!\n\nné?"}, result)
