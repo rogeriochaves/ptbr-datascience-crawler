@@ -5,27 +5,29 @@ import os
 import base64
 from newspaper import Article
 import asyncio
+import tweepy
 loop = asyncio.get_event_loop()
 
 # Get your own api_id and api_hash from https://my.telegram.org, under API Dev
 api_id = os.environ['API_ID']
 api_hash = os.environ['API_HASH']
-# Get the github token from https://github.com/settings/tokens
-github_token = os.environ['GITHUB_TOKEN']
+# Get the twitter tokens from https://developer.twitter.com/apps
+consumer_key = os.environ['TWITTER_CONSUMER_KEY']
+consumer_secret = os.environ['TWITTER_CONSUMER_SECRET']
+access_token = os.environ['TWITTER_ACCESS_TOKEN']
+access_token_secret = os.environ['TWITTER_ACCESS_SECRET']
+
 
 if os.environ['SESSION_DB']:
     with open("session_name.session", "wb") as file:
         file.write(base64.b64decode(os.environ['SESSION_DB']))
 
 
-def get_gist():
-    g = Github(github_token)
-    return g.get_gist("bc1469d0a8ed0de01369aa34be2bad76")
-
-
-def get_last_id(content):
-    matches = re.search(r'Last Message ID: (.*)', content)
-    return int(matches[1])
+def get_last_id_from_tweets(tweets):
+    for tweet in tweets:
+        matches = re.search(r'Last Message ID: (\d+)', tweet)
+        if matches:
+            return int(matches[1])
 
 
 def get_link_messages(client, offset):
@@ -40,35 +42,29 @@ def get_link_messages(client, offset):
     return list(messages_with_links)
 
 
-def get_article_details(message):
-    print('.')
-    matches = re.search(r'https?://\S*', message.message)
-    url = matches[0]
-    article = Article(url)
-    article.download()
-    article.parse()
-    message = re.sub(r'https?://\S*', '', message.message)
-    return {'title': article.title, 'top_image': article.top_image, 'url': url, 'message': message}
-
-
-def build_link_item(message):
-    try:
-        details = get_article_details(message)
-        url = details['url']
-        title = (details['title'] or url)
-        top_image = details['top_image']
-        message = details['message']
-
-        return '%s\n\n| [%s](%s) | [<img src="%s" width="300">](%s) |\n| -- | -- |' % (message, title, url, top_image, url)
-    except Exception:
-        return message.message
-
-
-def build_links_list(messages):
-    timestamp = messages[-1].date.strftime('%d/%m/%Y %H:%M')
+def build_tweets_list(messages):
+    tweets = [m.message[0:200] + "..."
+              if len(m.message) > 200
+              else m.message
+              for m in messages]
     last_id = messages[-1].id
-    messages_list = "\n\n".join([build_link_item(m) for m in messages])
-    return "### %s\nLast Message ID: %d\n\n%s" % (timestamp, last_id, messages_list)
+    timestamp = messages[-1].date.strftime('%d/%m')
+    tweets = ["Data Science Links %s (Last Message ID: %d)" % (
+        timestamp, last_id)] + tweets
+
+    return tweets
+
+
+def get_twitter_client():
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+
+    auth.set_access_token(access_token, access_token_secret)
+    api = tweepy.API(auth)
+    return api
+
+
+def get_last_tweets(twitter_client):
+    return [status.text for status in tweepy.Cursor(twitter_client.user_timeline).items()]
 
 
 if __name__ == "__main__":
@@ -76,22 +72,26 @@ if __name__ == "__main__":
     client.start()
     print("Connected to Telegram!")
 
-    gist = get_gist()
-    file = gist.files['links.md']
-    content = file.content
-    last_id = get_last_id(content)
+    twitter_client = get_twitter_client()
+    last_tweets = get_last_tweets(twitter_client)
+    last_id = get_last_id_from_tweets(last_tweets) or 89569
     print("Getting messages after", last_id)
 
     messages = get_link_messages(client, last_id)
-    print(len(messages), "links found, scrapping")
+    print(len(messages), "links found")
     if len(messages) == 0:
         print("No links to save")
         exit(0)
 
-    new_content = build_links_list(messages)
-    new_file = InputFileContent(new_content + "\n\n" + content)
+    new_tweets = build_tweets_list(messages)
+    print("Tweeting...")
 
-    print("Saving gist")
-    gist.edit(files={'links.md': new_file})
+    status = None
+    for tweet in new_tweets:
+        if status is None:
+            status = twitter_client.update_status(status=tweet)
+        else:
+            status = twitter_client.update_status(
+                status=tweet, in_reply_to_status_id=status.id)
 
-    print("Done! https://gist.github.com/rogeriochaves/bc1469d0a8ed0de01369aa34be2bad76")
+    print("Done! https://twitter.com/ptbrdslinks")

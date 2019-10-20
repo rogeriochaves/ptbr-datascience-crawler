@@ -1,3 +1,4 @@
 telethon
 PyGithub
 newspaper3k
+tweepy
